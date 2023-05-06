@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginUser = exports.newUser = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const user_1 = require("../models/user");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const newUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, password } = req.body;
     //Validamos si el usuario existe en la bd
@@ -42,11 +43,30 @@ const newUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.newUser = newUser;
-const loginUser = (req, res) => {
-    const { body } = req;
-    res.json({
-        msg: 'Login user',
-        body
-    });
-};
+const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { username, password } = req.body;
+    // res.json({
+    //     msg: 'Login user',
+    //     body
+    // });
+    //validamos su el usuario existe en la bd
+    const user = yield user_1.User.findOne({ where: { username: username } });
+    if (!user) {
+        return res.status(400).json({
+            msg: `El usuario ${username} no existe`
+        });
+    }
+    //validamos si el password es correcto
+    const passwordValid = yield bcrypt_1.default.compare(password, user.password);
+    if (!passwordValid) {
+        return res.status(400).json({
+            msg: `El password es incorrecto`
+        });
+    }
+    //generamos el token
+    const token = jsonwebtoken_1.default.sign({
+        username: user.username
+    }, process.env.SECRET_KEY || 'pepito123');
+    res.json(token);
+});
 exports.loginUser = loginUser;
